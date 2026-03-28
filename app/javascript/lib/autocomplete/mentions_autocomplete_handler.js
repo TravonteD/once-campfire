@@ -7,8 +7,12 @@ export default class extends BaseAutocompleteHandler {
   }
 
   insertAutocompletable(autocompletable, range, terminator, options = {}) {
-    const attachment = this.#createAttachmentForAutocompletable(autocompletable)
-    this.#insertAttachmentAndTerminatorIntoEditorAtRange(attachment, terminator, range, options)
+    if (autocompletable.type === "room_mention") {
+      this.#insertRoomMentionIntoEditorAtRange("@room", terminator, range)
+    } else {
+      const attachment = this.#createAttachmentForAutocompletable(autocompletable)
+      this.#insertAttachmentAndTerminatorIntoEditorAtRange(attachment, terminator, range, options)
+    }
   }
 
   // Override to set selector's position relative to the cursor in the editor
@@ -35,6 +39,11 @@ export default class extends BaseAutocompleteHandler {
     if (range) { this.#editor.setSelectedRange(range) }
     this.#editor.insertAttachment(attachment)
     this.#editor.insertString(terminator)
+  }
+
+  #insertRoomMentionIntoEditorAtRange(text, terminator, range) {
+    if (range) { this.#editor.setSelectedRange(range) }
+    this.#editor.insertString(text + terminator)
   }
 
   get #editor() {

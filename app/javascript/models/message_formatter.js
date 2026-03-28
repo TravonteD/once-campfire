@@ -66,7 +66,8 @@ export default class MessageFormatter {
 
   #highlightMentions(message) {
     const mentionsCurrentUser = message.querySelector(this.#selectorForCurrentUser) !== null
-    message.classList.toggle(this.#classes.mentioned, mentionsCurrentUser)
+    const mentionsRoom = message.textContent.toLowerCase().includes("@room")
+    message.classList.toggle(this.#classes.mentioned, mentionsCurrentUser || mentionsRoom)
   }
 
   #highlightCode(body) {
