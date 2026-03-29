@@ -1,38 +1,36 @@
 require "streamio-ffmpeg"
 
 class VideoTranscoder
-  def self.call(attachment)
-    new(attachment).call
+  def self.call(io)
+    new(io).call
   end
 
-  def initialize(attachment)
-    @attachment = attachment
+  def initialize(io)
+    @io = io
   end
 
   def call
-    return unless video?
-    return if already_transcoded?
+    return @io unless video?
+    return @io if already_transcoded?
 
-    transcode
+    transcoded_io
   end
 
   private
-    attr_reader :attachment
+    attr_reader :io
 
     def video?
-      attachment.video?
+      io.content_type&.starts_with?("video/")
     end
 
     def already_transcoded?
-      attachment.blob.content_type == "video/mp4" &&
-        attachment.blob.metadata[:video]&.dig(:video_codec) == "h264"
+      io.content_type == "video/mp4"
     end
 
-    def transcode
-      input_path = attachment.blob.path
-      output_path = File.join(Dir.tmpdir, "transcoded_#{attachment.blob.id}.mp4")
+    def transcoded_io
+      output_path = File.join(Dir.tmpdir, "transcoded_#{SecureRandom.hex}.mp4")
 
-      movie = FFMPEG::Movie.new(input_path)
+      movie = FFMPEG::Movie.new(io.path)
 
       options = {
         video_codec: "libx264",
@@ -46,14 +44,14 @@ class VideoTranscoder
         Rails.logger.info "Transcoding progress: #{(progress * 100).round}%"
       end
 
-      attachment.attachment.attach(
-        io: File.open(output_path),
-        filename: "#{attachment.blob.filename.base}.mp4",
-        content_type: "video/mp4"
-      )
+      transcoded = File.open(output_path)
+      transcoded.content_type = "video/mp4"
+      transcoded.original_filename = "#{File.basename(output_path, '.*')}.mp4"
 
       File.delete(output_path)
+      transcoded
     rescue => e
+      File.delete(output_path) if output_path && File.exist?(output_path)
       Rails.logger.error "Video transcoding failed: #{e.message}"
       raise
     end

@@ -23,13 +23,6 @@ module Message::Attachment
   def process_attachment
     ensure_attachment_analyzed
     process_attachment_thumbnail
-    enqueue_transcoding_job
-  end
-
-  def enqueue_transcoding_job
-    return unless attachment.video?
-
-    TranscodeVideoJob.perform_later(id)
   end
 
   private

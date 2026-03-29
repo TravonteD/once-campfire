@@ -19,7 +19,9 @@ class MessagesController < ApplicationController
 
   def create
     set_room
-    @message = @room.messages.create_with_attachment!(message_params)
+    params = message_params
+    params[:attachment] = VideoTranscoder.call(params[:attachment]) if params[:attachment]
+    @message = @room.messages.create_with_attachment!(params)
 
     @message.broadcast_create
     deliver_webhooks_to_bots
